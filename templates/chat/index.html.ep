@@ -1,23 +1,31 @@
-<html>
-  <head>
-    <title>WebSocket Client</title>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" ></script>
-    <script type="text/javascript" src="/js/ws.js"></script>
-    <style type="text/css">
-      textarea {
+% layout 'bootstrap';
+% title 'Test - Testサイト';
+% content_for head => begin
+  <style type="text/css">
+    #log {
           width: 40em;
           height:10em;
-      }
-    </style>
-  </head>
-<body>
-
-<h1>Mojolicious + WebSocket</h1>
-
-<p>name<input type="text" id="name" /><input type="button" id="enter" value="enter"></p>
-<p><input type="text" id="msg" /></p>
-<textarea id="log" readonly></textarea>
-
-</body>
-</html>
-
+    }
+    #members {
+          width: 20em;
+          height:10em;
+    }
+    #msg {
+          width: 20em;
+    }
+  </style>
+% end
+<h2>Mojolicious + WebSocket</h2>
+<div class="row">
+  <div id="content" class="col-xs-9 col-sm-9 col-md-9">
+  <textarea id="log" readonly></textarea>
+  </div>
+  <div class="col-xs-3 col-sm-3 col-md-3">
+  <textarea id="members" readonly></textarea>
+  </div>
+</div>
+<div class="row">
+  <div id="content" class="col-xs-12 col-sm-12 col-md-12">
+  <p>name<input type="text" id="name" /><button id="enter">enter</button></p>
+  <p><input type="text" id="msg" /></p>
+</div>

@@ -12,6 +12,23 @@ sub index {
   $self->render();
 }
 
+sub update_names(){
+  my $json = Mojo::JSON->new;
+  my @names = ();
+  for my $key(keys %$clients) {
+    push @names, $clients->{$key}->{name};
+  }
+
+  for (keys %$clients) {
+    $clients->{$_}->{tx}->send(
+    decode_utf8($json->encode({
+      names  => \@names,
+    }))
+    );
+  }
+}
+
+
 # This action will render a template
 sub echo {
     my $self = shift;
@@ -20,26 +37,31 @@ sub echo {
 
     $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx;
-    $clients->{$id} = $self->tx;
+    $clients->{$id} = {tx => $self->tx, name =>''};
 
     $self->on(message =>
         sub {
             my ($self, $arg) = @_;
             my ($key,$value) = split(/\t/,$arg);
-            my $name = '名無し';
+
             if ($key eq "name"){
-              $name = $value;
+              $clients->{$id}->{name} = $value || '名無し';
+              update_names();
+              return;
             }
 
-            my $json = Mojo::JSON->new;
+            my $msg = $value;
+
             my $dt   = DateTime->now( time_zone => 'Asia/Tokyo');
 
+            my $json = Mojo::JSON->new;
+
             for (keys %$clients) {
-                $clients->{$_}->send(
+                $clients->{$_}->{tx}->send(
                     decode_utf8($json->encode({
                         hms  => $dt->hms,
                         text => $msg,
-                        name => $name,
+                        name => $clients->{$_}->{name},
                     }))
                 );
             }
@@ -50,6 +72,7 @@ sub echo {
         sub {
             $self->app->log->debug('Client disconnected');
             delete $clients->{$id};
+            update_names();
         }
     );
 }

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+  <head>
+    <meta property="og:title" content="ジョグナビ | ジョギング情報サイト" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content="ジョギングコースにまつわる情報共有サイトです" />
+    <title><%= title %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <script src="/js/jquery.js"></script>
+    <script src="/js/ws.js"></script>
+    <%= content 'head' %>
+  </head>
+  <body>
+      <%= content %> 
+      <hr>
+      <footer id="footer">
+        <p>&copy; @dokechin 2013</p>
+      </footer>
+    <script src="/js/bootstrap.min.js"></script>
+  </body>
+</html>
