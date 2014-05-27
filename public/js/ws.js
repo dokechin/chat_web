@@ -14,10 +14,7 @@ $(function () {
 
   var initialize = function() {
     ws = new WebSocket('ws://localhost:3000/echo');
-    ws.onopen = function () {
-      log('Connection opened');
-    };
-    
+
     ws.onmessage = function (msg) {
       var res = JSON.parse(msg.data);
       if (res.names){
@@ -33,8 +30,6 @@ $(function () {
     };
   };
 
-  initialize();
-
   $('#msg').keydown(function (e) {
     if (e.keyCode == 13 && $('#msg').val()) {
         ws.send("message\t" + $('#msg').val());
@@ -45,12 +40,16 @@ $(function () {
 
   $('#enter').click(function () {
     if ($(this).text() == 'enter'){
-      if (ws.readyState == 3){
+      if (ws == null || ws.readyState == 3){
         initialize();
       }
-      $(this).text('leave');
+      $('#enter').prop('disabled', true); 
       $('#name').prop('disabled', true); 
-      ws.send("name\t" + $('#name').val());
+      ws.onopen = function () {
+        ws.send("name\t" + $('#name').val());
+        $('#enter').text('leave');
+        $('#enter').prop('disabled', false); 
+      };
     }
     else{
       ws.close(4500,"leave room");
