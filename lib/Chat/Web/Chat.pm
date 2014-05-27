@@ -16,16 +16,19 @@ sub index {
 sub echo {
     my $self = shift;
 
+    Mojo::IOLoop->stream($self->tx->connection)->timeout(600);
+
     $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx;
     $clients->{$id} = $self->tx;
 
     $self->on(message =>
         sub {
-            my ($self, $msg) = @_;
-            my ($name,$message) = split(/\t/,$msg);
-            unless($name){
-                $name = '名無し';
+            my ($self, $arg) = @_;
+            my ($key,$value) = split(/\t/,$arg);
+            my $name = '名無し';
+            if ($key eq "name"){
+              $name = $value;
             }
 
             my $json = Mojo::JSON->new;
