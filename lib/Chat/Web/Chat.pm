@@ -1,6 +1,7 @@
 package Chat::Web::Chat;
 use Mojo::Base 'Mojolicious::Controller';
 use DateTime;
+use Encode qw/from_to decode_utf8 encode_utf8/;
 
 my $clients = {};
 
@@ -22,16 +23,21 @@ sub echo {
     $self->on(message =>
         sub {
             my ($self, $msg) = @_;
+            my ($name,$message) = split(/\t/,$msg);
+            unless($name){
+                $name = '名無し';
+            }
 
             my $json = Mojo::JSON->new;
             my $dt   = DateTime->now( time_zone => 'Asia/Tokyo');
 
             for (keys %$clients) {
-                $clients->{$_}->send_message(
-                    $json->encode({
+                $clients->{$_}->send(
+                    decode_utf8($json->encode({
                         hms  => $dt->hms,
                         text => $msg,
-                    })
+                        name => $name,
+                    }))
                 );
             }
         }

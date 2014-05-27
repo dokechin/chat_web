@@ -14,6 +14,7 @@
 
 <h1>Mojolicious + WebSocket</h1>
 
+<p>name<input type="text" id="name" /></p>
 <p><input type="text" id="msg" /></p>
 <textarea id="log" readonly></textarea>
 

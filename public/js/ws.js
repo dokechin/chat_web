@@ -12,12 +12,12 @@ $(function () {
   
   ws.onmessage = function (msg) {
     var res = JSON.parse(msg.data);
-    log('[' + res.hms + '] ' + res.text); 
+    log('[' + res.hms + '] (' + res.name + ') ' + res.text);
   };
 
   $('#msg').keydown(function (e) {
     if (e.keyCode == 13 && $('#msg').val()) {
-        ws.send($('#msg').val());
+        ws.send($('#name').val() + "\t" + $('#msg').val());
         $('#msg').val('');
     }
   });
