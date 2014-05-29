@@ -1,0 +1,5 @@
+#!/bin/bash
+HOME=~
+. ~/.bash_profile
+exec hypnotoad -f /home/tatsumi/chat/script/chat_web
+         

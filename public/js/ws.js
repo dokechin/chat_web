@@ -13,7 +13,8 @@ $(function () {
   };
 
   var initialize = function() {
-    ws = new WebSocket('ws://localhost:3000/echo');
+  ws = new WebSocket('ws://chat.dokechin.com/echo');
+//    ws = new WebSocket('ws://localhost:3000/echo');
 
     ws.onmessage = function (msg) {
       var res = JSON.parse(msg.data);

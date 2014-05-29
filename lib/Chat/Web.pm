@@ -7,6 +7,13 @@ sub startup {
 
   # Router
   my $r = $self->routes;
+  
+  my $config = $self->plugin( 'Config', { file => 'chat.conf' } );
+
+  $self->hook( before_dispatch=> sub {
+    my $c = shift;
+    $c->app->log->info($c->req->headers->to_string);
+  });
 
   # Normal route to controller
   $r->websocket ('/echo')->to('chat#echo');
