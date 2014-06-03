@@ -13,8 +13,9 @@ $(function () {
   };
 
   var initialize = function() {
-  ws = new WebSocket('ws://chat.dokechin.com/echo');
-//    ws = new WebSocket('ws://localhost:3000/echo');
+//  ws = new WebSocket('ws://chat.dokechin.com/echo');
+    ws = new WebSocket('ws://' + location.host + location.pathname + '/echo');
+    alert('ws://' + location.host + location.pathname + '/echo');
 
     ws.onmessage = function (msg) {
       var res = JSON.parse(msg.data);
@@ -24,7 +25,7 @@ $(function () {
       else{
         log('[' + res.hms + '] (' + res.name + ') ' + res.text);
       }
-    };
+    };  
     
     ws.onclose = function(){
       log('Connection closed');

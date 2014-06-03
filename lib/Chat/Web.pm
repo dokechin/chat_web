@@ -16,8 +16,8 @@ sub startup {
   });
 
   # Normal route to controller
-  $r->websocket ('/echo')->to('chat#echo');
-  $r->get ('/')->to('chat#index');
+  $r->websocket ('/:channel/echo')->to('chat#echo');
+  $r->get ('/:channel')->to('chat#index');
 
 }
 
