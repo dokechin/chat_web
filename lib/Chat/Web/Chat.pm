@@ -37,12 +37,13 @@ sub echo {
 
       my $id = sprintf "%s", $self->tx;
       my $dt   = DateTime->now( time_zone => 'Asia/Tokyo');
+      my ($name, $msg) = split /\n/ , $message;
 
       $self->tx->send(
        decode_utf8($json->encode({
          hms  => $dt->hms,
-         name => $clients->{$id}->{name},
-         message  => $message,
+         name => $name,
+         message  => $msg,
       }))
       );
     });
@@ -103,7 +104,7 @@ sub echo {
 
         my $pub_channel = sprintf "%s:message" , $channel;
 
-        $redis->publish($pub_channel => $msg);
+        $redis->publish($pub_channel => sprintf "%s\n%s" , $clients->{$id}->{name} , $msg);
 
       }
     });
