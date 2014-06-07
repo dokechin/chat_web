@@ -2,9 +2,9 @@ package Chat::Web::Chat;
 use Mojo::Base 'Mojolicious::Controller';
 use DateTime;
 use Encode qw/from_to decode_utf8 encode_utf8/;
-use Cache::FastMmap;
+use Mojo::Redis;
 
-my $cache = Cache::FastMmap->new();
+my $clients = {};
 
 sub index {
   my $self = shift;
@@ -13,25 +13,6 @@ sub index {
 
   $self->render('chat/index', {channel => $channel});
 }
-
-sub update_names{
-  my $json = Mojo::JSON->new;
-  my $channel = shift;
-  my $clients = $cache->get($channel);
-  my @names = ();
-  for my $key(keys %$clients) {
-    push @names, $clients->{$key}->{name};
-  }
-
-  for (keys %$clients) {
-    $clients->{$_}->{tx}->send(
-    decode_utf8($json->encode({
-      names  => \@names,
-    }))
-    );
-  }
-}
-
 
 # This action will render a template
 sub echo {
@@ -44,54 +25,121 @@ sub echo {
     $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx;
 
-    my $clients = $cache->get($channel);
-    if (!defined $clients){
-      $clients = {};
-    }
-    $clients->{$id} =  {tx => $self->tx, name =>'',channel => $channel};
+    my $redis = Mojo::Redis->new;
+    
+    $clients->{$id} = { channel => $channel, redis => $redis};
 
-    $cache->set($channel, $clients);
+    # messages from redis
+    $redis->on(message => "$channel:message" , sub {
+      my ($redis, $err, $message, $channel) = @_;
 
-    $self->on(message =>
-        sub {
-            my ($self, $arg) = @_;
-            my ($key,$value) = split(/\t/,$arg);
+      my $json = Mojo::JSON->new;
 
-            $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
+      my $id = sprintf "%s", $self->tx;
+      my $dt   = DateTime->now( time_zone => 'Asia/Tokyo');
 
-            if ($key eq "name"){
-              $clients->{$id}->{name} = $value || '名無し';
-              update_names($channel);
-              return;
-            }
+      $self->tx->send(
+       decode_utf8($json->encode({
+         hms  => $dt->hms,
+         name => $clients->{$id}->{name},
+         message  => $message,
+      }))
+      );
+    });
 
-            my $msg = $value;
+    $redis->on(message => "$channel:names" , sub {
+      my ($redis, $err, $message, $channel) = @_;
 
-            my $dt   = DateTime->now( time_zone => 'Asia/Tokyo');
+      my $json = Mojo::JSON->new;
 
-            my $json = Mojo::JSON->new;
+      my @names = split / /, $message;
+      $self->tx->send(
+        decode_utf8($json->encode({
+          names  => \@names,
+        }))
+      );
 
-            for (keys %$clients) {
-                $clients->{$_}->{tx}->send(
-                    decode_utf8($json->encode({
-                        hms  => $dt->hms,
-                        text => $msg,
-                        name => $clients->{$_}->{name},
-                    }))
-                );
-            }
-        }
+    });
+
+    # message from websocket
+    $self->on(message => sub {
+      my ($self, $arg) = @_;
+      my ($key,$value) = split(/\t/,$arg);
+      my $name;
+
+      my $id = sprintf "%s", $self->tx;
+
+      if ($key eq "name"){
+        $name = $value || '名無し';
+
+        $redis->hset($channel => { $id => $name});
+
+        $self->app->log->debug(sprintf 'id: %s , name: %s', $id,$name);
+
+        
+        $clients->{$id}->{name} = $name;
+        $channel = $clients->{$id}->{channel};
+
+        $redis->hvals(
+           $channel => sub {
+             my ($redis, $vals) = @_;
+             
+             my $json = Mojo::JSON->new;
+             
+             my $pub_channel = sprintf "%s:names" , $channel;
+
+             $redis->publish( $pub_channel => "@$vals");
+
+           }
+        );
+      }
+      else{
+
+        my $msg = $value;
+
+        $self->app->log->debug(sprintf 'id: %s , message: %s', $id,$msg);
+
+        my $channel = $clients->{$id}->{channel};
+
+        my $pub_channel = sprintf "%s:message" , $channel;
+
+        $redis->publish($pub_channel => $msg);
+
+      }
+    });
+
+    # need to clean up after websocket close
+    $self->on(finish => sub {
+
+      my $id = sprintf "%s", $self->tx;
+
+      my $channel = $clients->{$id}->{channel};
+
+      my $redis = $clients->{$id}->{redis};
+
+      $redis->hdel(
+        $channel => $id => sub {
+        my ($redis, $ret) = @_;
+        delete $clients->{$id};
+
+        $redis->hvals(
+           $channel => sub {
+             my ($redis, $vals) = @_;
+
+             my $json = Mojo::JSON->new;
+
+             my $pub_channel = sprintf "%s:names" , $channel;
+
+             $redis->publish($pub_channel => "@$vals");
+
+           }
+        );
+
+      }
     );
 
-    $self->on( finish => 
-        sub {
-            my $channel = $clients->{$id}->{channel};
-            my $name = $clients->{$id}->{name};
-            $self->app->log->debug('Client disconnected' || $channel || $name);
-            delete $clients->{$id};
-            update_names($channel);
-        }
-    );
+  });
+
 }
 
 1;

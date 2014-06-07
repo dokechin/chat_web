@@ -15,7 +15,7 @@ $(function () {
   var initialize = function() {
 //  ws = new WebSocket('ws://chat.dokechin.com/echo');
     ws = new WebSocket('ws://' + location.host + location.pathname + '/echo');
-    alert('ws://' + location.host + location.pathname + '/echo');
+//    alert('ws://' + location.host + location.pathname + '/echo');
 
     ws.onmessage = function (msg) {
       var res = JSON.parse(msg.data);
@@ -23,7 +23,7 @@ $(function () {
         member(res.names);
       }
       else{
-        log('[' + res.hms + '] (' + res.name + ') ' + res.text);
+        log('[' + res.hms + '] (' + res.name + ') ' + res.message);
       }
     };  
     
@@ -48,6 +48,7 @@ $(function () {
       $('#enter').prop('disabled', true); 
       $('#name').prop('disabled', true); 
       ws.onopen = function () {
+        log("onopen");
         ws.send("name\t" + $('#name').val());
         $('#enter').text('leave');
         $('#enter').prop('disabled', false); 
