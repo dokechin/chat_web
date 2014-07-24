@@ -72,21 +72,60 @@ $tp->websocket_ok('/hoge/echo')
 $td->$messages();
 
 # papixさんの発言がpapixさんへ伝わる
-$tp->send_ok("message	yo")
+$tp->send_ok("message	yo\nimage	test")
   ->message_ok()
   ->json_message_is( "/name" => "papix")
   ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
-  ->json_message_is( "/message" => 'yo');
+  ->json_message_is( "/message" => 'yo')
+  ->json_message_is( "/image" => 'test');
 
-# papixさんの発言がdokechinさんへ伝わる
+# papixさんの発言がdokechinさんへ伝わる、ただし画像は伝わらない
 $td->message_ok()
   ->json_message_is( "/name" => "papix")
   ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
   ->json_message_is( "/message" => 'yo')
-  ->finish_ok;
+  ->json_message_is( "/image" => '');
+
+# papixさんがdokechinへ画像表示許可
+$tp->send_ok("display	dokechin","send display dokechin");
+sleep(1);
+
+# papixさんの発言がpapixさんへ伝わる
+$tp->send_ok("message	yoyo\nimage	testtest")
+  ->message_ok()
+  ->json_message_is( "/name" => "papix")
+  ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+  ->json_message_is( "/message" => 'yoyo')
+  ->json_message_is( "/image" => 'testtest');
+
+# papixさんの発言がdokechinさんへ伝わる、画像も伝わる
+$td->message_ok()
+  ->json_message_is( "/name" => "papix")
+  ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+  ->json_message_is( "/message" => 'yoyo')
+  ->json_message_is( "/image" => 'testtest');
+
+# papixさんがdokechinへ画像表示不許可
+$tp->send_ok("undisplay	dokechin");
+sleep(1);
+
+# papixさんの発言がpapixさんへ伝わる
+$tp->send_ok("message	ya\nimage	hoge")
+  ->message_ok()
+  ->json_message_is( "/name" => "papix")
+  ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+  ->json_message_is( "/message" => 'ya')
+  ->json_message_is( "/image" => 'hoge');
+
+# papixさんの発言がdokechinさんへ伝わる、画像は伝わらない
+$td->message_ok()
+  ->json_message_is( "/name" => "papix")
+  ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+  ->json_message_is( "/message" => 'ya')
+  ->json_message_is( "/image" => '')
+  ->finish_ok();
 
 # dokechinさんの退出がpapixさんへ伝わる
-
 $messages = sub {
     my ($t) = @_;
     my $m1 = $t->message_ok()->message;

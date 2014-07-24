@@ -5,14 +5,19 @@
 <h2>Chat Room <%= $channel %></h2>
 <div class="row">
   <div class="col-xs-8 col-sm-8 col-md-8">
-  <textarea class="form-control" rows="20" id="log" readonly></textarea>
+  <textarea class="form-control" rows="25" id="log" readonly></textarea>
   </div>
-  <div class="col-xs-2 col-sm-2 col-md-2">
+  <div class="col-xs-4 col-sm-4 col-md-4">
   <textarea class="form-control"  rows="20" id="members" readonly></textarea>
+    <div style="visibility: hidden;  width:0; height:0;">
+      <canvas width="120" id="canvas" height="90"></canvas>
+    </div>
+    <div>
+      <video id="live" width="120" height="90" autoplay style="display: inline;"></video>
+      <img id="target" style="display: inline;"/>
+    </div>
   </div>
-  <div class="col-xs-2 col-sm-2 col-md-2"></div>
 </div>
-<hr>
 <div class="row">
   <div class="form-group">
     <label class="col-xs-1 col-sm-1 col-md-1 control-label">Name</label>

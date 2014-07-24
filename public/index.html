@@ -1,11 +1,72 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Welcome to the Mojolicious real-time web framework!</title>
+    <title>かめチャット</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+    <meta property="og:title" content="かめチャット" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content="無料チャット" />
+    <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="/css/chat.css" rel="stylesheet" media="screen">
+    <script src="/js/vue.min.js"></script>
+    <script src="/js/page.js"></script>
   </head>
   <body>
-    <h2>Welcome to the Mojolicious real-time web framework!</h2>
-    This is the static document "public/index.html",
-    <a href="/">click here</a> to get back to the start.
+  <div id="chat">
+    <div v-show="isLobby">
+      <h1>{{title | uppercase}}</h1>
+      <h2>チェットルーム一覧</h2>
+      <ul id="open_rooms" class="list-group">
+        <li class="list-group-item"
+            v-repeat="rooms"
+            v-on="click: go_entrance(this)" >
+          {{name}}
+        </li>
+      </ul>
+      <div class="input-group">
+        <input type="text" class="form-control" v-on="keydown: open_room | key 13" v-model="room" placeholder="チャット名"/>
+        <span class="input-group-btn">
+          <button type="button" class="btn btn-default" v-show="isLobby" v-on="click: open_room">開設</button>
+        </span>
+      </div>
+    </div>
+    <div v-show="!isLobby">
+      <h1>{{ room }}</h1>
+      <div class="col-xs-12 col-sm-9 col-md-9">
+        <ul id="entries" class="list-group">
+          <li class="list-group-item" v-repeat="entries">
+              {{content}}<img src="{{img_src}}" style="display: inline;">
+          </li>
+        </ul>
+        <div class="input-group">
+          <input type="text" class="form-control" v-on="keydown: enter | key 13" v-model="your_name" v-attr="disabled:isRoom" placeholder="名前"/>
+          <span class="input-group-btn">
+            <button class="btn btn-default" v-on="click: enter">{{isEntrance ? '入室' : '退室'}}</button>
+          </span>
+        </div>
+        <div class="input-group">
+          <input type="text" class="form-control" v-attr="disabled:!isRoom" v-model="message" v-on="keydown: say | key 13" placeholder="発言"/>
+          <span class="input-group-btn">
+            <button class="btn btn-default" v-on="click: say">発言</button>
+          </span>
+        </div>
+      </div>
+      <div class="col-xs-12 col-sm-3 col-md-3">
+        <ul id="names" class="list-group">
+          <li class="list-group-item" v-repeat="names">
+              {{name}}({{money}}円)<label v-show="isVideo && (your_name != name)"><input v-show="isVideo && (your_name != name)" type="checkbox" v-on="click : allow(this)"/>画像公開</label>
+          </li>
+        </ul>
+        <div style="visibility: hidden;  width:0; height:0;">
+          <canvas width="160" id="canvas" height="120"></canvas>
+        </div>
+        <div>
+          <video id="live" width="160" height="120" autoplay></video><br>
+          <!--img id="target" style="display: inline;"/-->
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/test.js"></script>
   </body>
 </html>

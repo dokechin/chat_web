@@ -1,0 +1,28 @@
+#open_rooms
+{
+height: 200px;
+overflow: auto;
+background-color: white;
+}
+
+#entries
+{
+height: 300px;
+overflow: auto;
+background-color: white;
+}
+
+#names
+{
+height: 150px;
+overflow: auto;
+background-color: white;
+}
+
+
+
+ul#open_rooms li:hover { background-color: #e2d !important; }
+ul#names li:hover { background-color: #d4d !important; }
+
+ 
+

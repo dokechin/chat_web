@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/html">
   <head>
-    <meta property="og:title" content="ジョグナビ | ジョギング情報サイト" />
+    <meta property="og:title" content="かめチャット" />
     <meta property="og:type" content="website" />
-    <meta property="og:description" content="ジョギングコースにまつわる情報共有サイトです" />
+    <meta property="og:description" content="無料チャット" />
     <title><%= title %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <script src="/js/jquery.js"></script>
+    <script src="/js/vue.min.js"></script>
     <script src="/js/ws.js"></script>
     <%= content 'head' %>
   </head>

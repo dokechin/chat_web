@@ -1,8 +1,11 @@
 package Chat::Web::Chat;
 use Mojo::Base 'Mojolicious::Controller';
-use DateTime;
+use Time::Piece;
 use Encode qw/from_to decode_utf8 encode_utf8/;
 use Mojo::Redis;
+use Redis::Fast;
+use Data::Dumper;
+use Mojo::IOLoop::Delay;
 
 my $clients = {};
 
@@ -25,9 +28,9 @@ sub echo {
     $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx;
 
-    my $redis = Mojo::Redis->new;
-    
-    $clients->{$id} = { channel => $channel, redis => $redis};
+    my $redis = Mojo::Redis->new(server => $self->redisserver());
+
+    $clients->{$id} = { channel => $channel, redis => $redis , display =>{}, money => 0};
 
     # messages from redis
     $redis->on(message => "$channel:message" , sub {
@@ -36,14 +39,30 @@ sub echo {
       my $json = Mojo::JSON->new;
 
       my $id = sprintf "%s", $self->tx;
-      my $dt   = DateTime->now( time_zone => 'Asia/Tokyo');
-      my ($name, $msg) = split /\n/ , $message;
+      my $lt   = localtime;
+      my ($name, $msg, $image, $money) = split /\n/ , $message;
+      
+      $self->app->log->debug("$id: $name $msg $image $money");
+
+      my $display = 0;
+      if ($name eq $clients->{$id}->{name}){
+          $display = 1;
+      }
+      else{
+          for my $target ( keys $clients->{$id}->{display}){
+              if ($target eq $name && $clients->{$id}->{display}->{$target} == 1){
+                  $display = 1;
+              }
+          }
+      }
 
       $self->tx->send(
        decode_utf8($json->encode({
-         hms  => $dt->hms,
+         hms  => $lt->hms,
          name => $name,
          message  => $msg,
+         image => ($display) ? $image : '',
+         money => $money,
       }))
       );
     });
@@ -62,85 +81,228 @@ sub echo {
 
     });
 
+    $redis->on(message => "$channel:display" , sub {
+      my ($redis, $err, $message, $channel) = @_;
+
+      my $json = Mojo::JSON->new;
+
+      my ($target, $src) = split / /, $message;
+
+      my $id = sprintf "%s", $self->tx;
+
+      if ($target eq $clients->{$id}->{name}){
+          $clients->{$id}->{display}->{$src} = 1;
+      }
+
+    });
+
+    $redis->on(message => "$channel:undisplay" , sub {
+      my ($redis, $err, $message, $channel) = @_;
+
+      my $json = Mojo::JSON->new;
+
+      my ($target, $src) = split / /, $message;
+
+      my $id = sprintf "%s", $self->tx;
+
+      if ($target eq $clients->{$id}->{name}){
+          $clients->{$id}->{display}->{$src} = 0;
+      }
+
+    });
+
+    $redis->on(close => sub {
+      my($redis) = @_;
+    });
+
+    $redis->on(error => sub {
+      my ($redis, $err) = @_;
+
+      warn("redis error : %s", $err);
+
+    });
+
+
     # message from websocket
     $self->on(message => sub {
       my ($self, $arg) = @_;
-      my ($key,$value) = split(/\t/,$arg);
+      
+      my @lines = split(/\n/,$arg);
+      
+      my $params = {image=>''};
+      for my $line(@lines){
+        my ($key,$value) = split /\t/ ,$line;
+        $params->{$key} = $value;
+      }
+      
+      $self->app->log->info(Dumper($params));
+
+
       my $name;
 
       my $id = sprintf "%s", $self->tx;
 
-      if ($key eq "name"){
-        $name = $value || '名無し';
-
-        $redis->hset($channel => { $id => $name});
-
-        $self->app->log->debug(sprintf 'id: %s , name: %s', $id,$name);
-
-        
-        $clients->{$id}->{name} = $name;
-        $channel = $clients->{$id}->{channel};
+      if ($params->{name}){
+        $name = $params->{name} || '名無し';
 
         $redis->hvals(
            $channel => sub {
-             my ($redis, $vals) = @_;
+          my ($redis, $vals) = @_;
              
-             my $json = Mojo::JSON->new;
-             
-             my $pub_channel = sprintf "%s:names" , $channel;
+          my $json = Mojo::JSON->new;
 
-             $redis->publish( $pub_channel => "@$vals");
+          my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @$vals;
 
-           }
-        );
+          for my $exist_name(@names){
+            if ($exist_name eq $name){
+              $self->tx->send(
+                decode_utf8($json->encode({
+                  deny  => $name
+                }))
+              );
+              return;
+            }
+          }
+
+          my $now = localtime;
+
+          $redis->hset($channel => { $id => $name . "\n" . $now->datetime });
+
+          $redis->smembers(rooms => sub{
+              my ($redis, $vals) = @_;
+              
+              if (scalar (grep (/^$channel$/, @$vals)) == 0){
+                  $redis->sadd("rooms", $channel);
+                  $redis->publish( "rooms" => "@$vals $channel");
+              }
+
+          });
+
+          my $channel = $clients->{$id}->{channel};
+          my $pub_channel = sprintf "%s:message" , $channel;
+          $redis->publish($pub_channel => sprintf "%s\n%s\n\n0" , $name , "入室しました。");
+
+          $clients->{$id}->{name} = $name;
+          $channel = $clients->{$id}->{channel};
+
+          $redis->hvals(
+               $channel => sub {
+            my ($redis, $vals) = @_;
+                 
+            my $json = Mojo::JSON->new;
+                 
+            my $pub_channel = sprintf "%s:names" , $channel;
+
+            my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @$vals;
+
+            $redis->publish( $pub_channel => "@names");
+
+          });
+        });
       }
-      else{
+      elsif($params->{message}){
 
-        my $msg = $value;
+        my $msg = $params->{message};
+        my $image = $params->{image};
 
-        $self->app->log->debug(sprintf 'id: %s , message: %s', $id,$msg);
+        $self->app->log->info(sprintf 'id: %s , message: %s', $id,$msg);
 
         my $channel = $clients->{$id}->{channel};
 
         my $pub_channel = sprintf "%s:message" , $channel;
 
-        $redis->publish($pub_channel => sprintf "%s\n%s" , $clients->{$id}->{name} , $msg);
+        my $money = $clients->{$id}->{money} + 100;
+        $clients->{$id}->{money} = $money;
+
+        $redis->publish($pub_channel => sprintf "%s\n%s\n%s\n%d" , $clients->{$id}->{name} , $msg, $image, $money);
+
+        my $now = localtime;
+
+        $redis->hset($channel => { $id => $clients->{$id}->{name} . "\n" . $now->datetime });
 
       }
+      else{
+        my $kind = ($params->{display})? "display": "undisplay";
+        my $target = ($params->{display})? $params->{display} : $params->{undisplay};
+
+        my $pub_channel = sprintf "%s:%s" , $channel, $kind;
+        my $msg = sprintf "%s %s", $target,$clients->{$id}->{name};
+#        warn("$pub_channel $msg");
+
+        $redis->publish($pub_channel => $msg);
+
+      }
+
     });
 
     # need to clean up after websocket close
     $self->on(finish => sub {
 
       my $id = sprintf "%s", $self->tx;
-
+      warn("finish $id");
+      my $tx = $self->tx;
+      my $name = $clients->{$id}->{name};
       my $channel = $clients->{$id}->{channel};
 
       my $redis = $clients->{$id}->{redis};
+      
+      $redis->unsubscribe(message => $channel . ":names" );
+      $redis->unsubscribe(message => $channel . ":message" );
+      $redis->unsubscribe(message => $channel . ":display" );
+      $redis->unsubscribe(message => $channel . ":undisplay" );
 
-      $redis->hdel(
-        $channel => $id => sub {
-        my ($redis, $ret) = @_;
-        delete $clients->{$id};
+      delete $clients->{$id}->{redis};
+      undef $clients->{$id};
+      delete $clients->{$id};
+      undef $tx;
 
-        $redis->hvals(
-           $channel => sub {
-             my ($redis, $vals) = @_;
+      # 入室前の人の場合処理しない
+      if (defined $name){
+        my $redis_f = Redis::Fast->new(server => $self->redisserver());
+        $redis_f->hdel($channel => $id);
+        my @ids = $redis_f->hkeys ($channel);
+        my @vals = $redis_f->hvals($channel);
+        my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
+        my $pub_channel = sprintf "%s:names", $channel;
+        $redis_f->publish($pub_channel => "@names");
 
-             my $json = Mojo::JSON->new;
-
-             my $pub_channel = sprintf "%s:names" , $channel;
-
-             $redis->publish($pub_channel => "@$vals");
-
-           }
-        );
-
+        if (@ids == 0 ){
+          $redis_f->srem(rooms => $channel);
+          my @vals = $redis_f->smembers("rooms");
+          $redis_f->publish( "rooms" => "@vals");
+        }
+        else{
+          $pub_channel = sprintf "%s:message" , $channel;
+          $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "退室しました", "");
+        }
       }
-    );
+      my $redisserver = $self->redisserver;
+      undef $redisserver;
 
-  });
+    });
+}
 
+END{
+  my $redis = Redis::Fast->new(server => $Chat::Web::redisserver);
+  for my $id (keys %$clients){
+    my $channel = $clients->{$id}->{channel};
+    $redis->hdel($channel => $id);
+    warn("hdel $channel,$id");
+  }
+  my @rooms = $redis->smembers("rooms");
+  for my $room ( @rooms){
+    my @ids = $redis->hkeys ($room);
+    my @vals = $redis->hvals($room);
+    my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
+    my $pub_channel = sprintf "%s:names", $room;
+    $redis->publish($pub_channel => "@names");
+    if (@ids == 0 ){
+      $redis->srem(rooms => $room);
+      warn("srem $room");
+      my @vals = $redis->smembers("rooms");
+      $redis->publish( "rooms" => "@vals");
+    }
+  }
 }
 
 1;
