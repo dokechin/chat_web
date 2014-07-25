@@ -49,7 +49,7 @@ sub echo {
           $display = 1;
       }
       else{
-          for my $target ( keys $clients->{$id}->{display}){
+          for my $target ( keys %{$clients->{$id}->{display}}){
               if ($target eq $name && $clients->{$id}->{display}->{$target} == 1){
                   $display = 1;
               }
