@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/html">
   <head>
-    <meta property="og:title" content="かめチャット" />
+    <meta property="og:title" content="寿司チャット SushiChat" />
     <meta property="og:type" content="website" />
-    <meta property="og:description" content="無料チャット" />
+    <meta property="og:description" content="寿司屋気分味わえるチャット" />
     <title><%= title %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">

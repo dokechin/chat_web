@@ -17,8 +17,9 @@ my $messages = sub {
     my ($t) = @_;
     my $m1 = $t->message_ok()->message;
     my $m2 = $t->message_ok()->message;
+    my $m3 = $t->message_ok()->message;
 
-    my @sorted = sort { length($a) <=> length($b)} ($m1->[1],$m2->[1]);
+    my @sorted = sort { length($a) <=> length($b)} ($m1->[1],$m2->[1],$m3->[1]);
 
     $t->message([text => $sorted[0]]);
 
@@ -28,7 +29,13 @@ my $messages = sub {
     
     $t->json_message_is( "/name" => "dokechin")
       ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
-      ->json_message_is( "/message" => '入室しました。');
+      ->json_message_like( "/message" => 'へい、いらっしゃい！');
+
+    $t->message([text => $sorted[2]]);
+
+    $t->json_message_like( "/menu/0/name" => qr/^\w*$/)
+      ->json_message_like( "/menu/0/price" => qr/^\d\d\d$/);
+
 };
 
 $td->websocket_ok('/hoge/echo')
@@ -50,6 +57,35 @@ $messages = sub {
     my ($t) = @_;
     my $m1 = $t->message_ok()->message;
     my $m2 = $t->message_ok()->message;
+    my $m3 = $t->message_ok()->message;
+
+    my @sorted = sort { length($a) <=> length($b)} ($m1->[1],$m2->[1],$m3->[1]);
+
+    $t->message([text => $sorted[0]]);
+
+    $t->json_message_is( "/names" => ["dokechin", "papix"]);
+
+    $t->message([text => $sorted[1]]);
+    
+    $t->json_message_is( "/name" => "papix")
+      ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+      ->json_message_like( "/message" => 'へい、いらっしゃい！');
+
+    $t->message([text => $sorted[2]]);
+
+    $t->json_message_like( "/menu/0/name" => qr/^\w*$/)
+      ->json_message_like( "/menu/0/price" => qr/^\d\d\d$/);
+
+};
+
+$tp->websocket_ok('/hoge/echo')
+  ->send_ok('name	papix')
+  ->$messages();
+
+$messages = sub {
+    my ($t) = @_;
+    my $m1 = $t->message_ok()->message;
+    my $m2 = $t->message_ok()->message;
 
     my @sorted = sort { length($a) <=> length($b)} ($m1->[1],$m2->[1]);
 
@@ -61,12 +97,9 @@ $messages = sub {
     
     $t->json_message_is( "/name" => "papix")
       ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
-      ->json_message_is( "/message" => '入室しました。');
-};
+      ->json_message_like( "/message" => 'へい、いらっしゃい！');
 
-$tp->websocket_ok('/hoge/echo')
-  ->send_ok('name	papix')
-  ->$messages();
+};
 
 # papixさん入室がdokechinさんに伝わる
 $td->$messages();
@@ -88,7 +121,7 @@ $td->message_ok()
 
 # papixさんがdokechinへ画像表示許可
 $tp->send_ok("display	dokechin","send display dokechin");
-sleep(1);
+sleep(10);
 
 # papixさんの発言がpapixさんへ伝わる
 $tp->send_ok("message	yoyo\nimage	testtest")
@@ -107,7 +140,7 @@ $td->message_ok()
 
 # papixさんがdokechinへ画像表示不許可
 $tp->send_ok("undisplay	dokechin");
-sleep(1);
+sleep(10);
 
 # papixさんの発言がpapixさんへ伝わる
 $tp->send_ok("message	ya\nimage	hoge")
@@ -141,7 +174,7 @@ $messages = sub {
     
     $t->json_message_is( "/name" => "dokechin")
       ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
-      ->json_message_is( "/message" => '退室しました');
+      ->json_message_like( "/message" => 'まいどありー');
 };
 
 $tp->$messages()

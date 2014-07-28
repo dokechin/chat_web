@@ -10,13 +10,15 @@ var ctx;
 var entrance = new Vue({
     el: '#chat',
     data: {
-        title: 'かめチャット',
+        title: 'すしチャット',
         rooms: [
         ],
         entries: [
         ],
         names:[],
+        menus:[],
         room: '',
+        wallet: 0,
         your_name: '名無し',
         message: '',
         isLobby: true,
@@ -64,6 +66,11 @@ var entrance = new Vue({
                ws_room.send("undisplay\t" + name.name);
            }
 
+        },
+        order: function(neta){
+            if (this.$get("wallet") >= neta.price){
+               ws_room.send("order\t" + neta.name + ":" + neta.price);
+            }
         },
         enter: function(room){
             console.log("enter")
@@ -119,7 +126,6 @@ var entrance = new Vue({
                             for ( var j = 0; j < olds.length; ++j ) {
                                 if (res.names[i] == olds[j].name){
                                     obj.display = olds[j].display;
-                                    obj.money = olds[j].money;
                                 }
                             }
                             names.push(obj);
@@ -133,15 +139,14 @@ var entrance = new Vue({
                           img_src : res.image});
 
                           var names = context.$get("names");
-                          for ( var i = 0; i < names.length; ++i ) {
-                              if (res.name == names[i].name){
-                                names[i].money = res.money;
-                              }
+                          if (res.name == context.$get("your_name") && res.money != ""){
+                              context.$set("wallet", res.money);
                           }
-//                        var target = document.querySelector("#target");
-//                        target.src = res.image;
                     }
-                    else{
+                    else if (res.menu){
+                        context.$set("menus", res.menu);
+                    }
+                    else if (res.deny){
                         alert("already same name");
                         context.$set("isRoom", false);
                         context.$set("isEntrance", true);

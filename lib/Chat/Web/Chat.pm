@@ -6,6 +6,7 @@ use Mojo::Redis;
 use Redis::Fast;
 use Data::Dumper;
 use Mojo::IOLoop::Delay;
+use Image::PNG;
 
 my $clients = {};
 
@@ -128,7 +129,7 @@ sub echo {
       my ($self, $arg) = @_;
       
       my @lines = split(/\n/,$arg);
-      
+
       my $params = {image=>''};
       for my $line(@lines){
         my ($key,$value) = split /\t/ ,$line;
@@ -136,7 +137,6 @@ sub echo {
       }
       
       $self->app->log->info(Dumper($params));
-
 
       my $name;
 
@@ -170,17 +170,47 @@ sub echo {
 
           $redis->smembers(rooms => sub{
               my ($redis, $vals) = @_;
-              
+              my $json = Mojo::JSON->new;
+
               if (scalar (grep (/^$channel$/, @$vals)) == 0){
                   $redis->sadd("rooms", $channel);
                   $redis->publish( "rooms" => "@$vals $channel");
+                  # menu create
+                  my $menu = getMenu();
+                  for my $key(keys %$menu){
+                      $redis->hset ("$channel:menu" => {$key => $menu->{$key}});
+                  }
+                  my @response = map{ {name => $_, price => $menu->{$_}} } keys(%$menu);
+
+                  warn(\@response);
+
+                  $self->tx->send(
+                    decode_utf8($json->encode({
+                      menu  => \@response
+                    }))
+                  );
               }
+              else{
 
+                  $redis->hgetall(
+                     "$channel:menu" => sub {
+                     my ($redis, $vals) = @_;
+                     my $json = Mojo::JSON->new;
+                     my @response = map{ {name => $_, price => $vals->{$_}} } keys(%$vals);
+
+                     warn(\@response);
+
+                     $self->tx->send(
+                       decode_utf8($json->encode({
+                         menu  => \@response
+                       }))
+                     );
+                  });
+              }
           });
-
           my $channel = $clients->{$id}->{channel};
           my $pub_channel = sprintf "%s:message" , $channel;
-          $redis->publish($pub_channel => sprintf "%s\n%s\n\n0" , $name , "入室しました。");
+          $redis->publish($pub_channel => sprintf "%s\n%s\n\n0" , $name, "へい、いらっしゃい！");
 
           $clients->{$id}->{name} = $name;
           $channel = $clients->{$id}->{channel};
@@ -219,6 +249,25 @@ sub echo {
         my $now = localtime;
 
         $redis->hset($channel => { $id => $clients->{$id}->{name} . "\n" . $now->datetime });
+
+      }
+      elsif($params->{order}){
+
+        my $channel = $clients->{$id}->{channel};
+        my $name = $clients->{$id}->{name};
+        my ($neta, $price) = split /:/ , $params->{order};
+        $clients->{$id}->{money} = $clients->{$id}->{money} - $price;
+        my $money = $clients->{$id}->{money};
+
+        my $pub_channel = sprintf "%s:message" , $channel;
+
+        $redis->publish($pub_channel => sprintf "%s\n%s%s\n\n%s" , $name , $neta , "いっちょー", $money);
+
+        Mojo::IOLoop->timer(10 => sub {
+            my $png = Image::PNG->new ();
+            $png->read_file ("./img/$neta.png");
+            $redis->publish($pub_channel => sprintf "%s\n%s%s\n%s\n" , $name , $neta, "お待ちどうさま", $png->data());
+        });
 
       }
       else{
@@ -273,11 +322,9 @@ sub echo {
         }
         else{
           $pub_channel = sprintf "%s:message" , $channel;
-          $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "退室しました", "");
+          $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "まいどありー", "");
         }
       }
-      my $redisserver = $self->redisserver;
-      undef $redisserver;
 
     });
 }
@@ -305,4 +352,9 @@ END{
   }
 }
 
+sub getMenu{
+    return  {"あじ"=>200,"中トロ"=>400,"たまご"=>100,
+             "マグロ"=>300,"エビ"=>300,"いくら"=>400,
+            "しめ鯖"=>200,"カンパチ"=>300,"ブリ"=>300};
+}
 1;

@@ -110,13 +110,26 @@ $tp->send_ok("message	yo")
   ->message_ok()
   ->json_message_is( "/name" => "papix")
   ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
-  ->json_message_is( "/message" => 'yo');
+  ->json_message_is( "/message" => 'yo')
+  ->json_message_is( "/money" => '100')
+  ->send_ok("order	たまご:100")
+  ->message_ok()
+  ->json_message_is( "/name" => "papix")
+  ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+  ->json_message_like( "/message" => qr/たまご/)
+  ->json_message_is( "/money" => '0');
 
 # papixさんの発言がdokechinさんへ伝わる
 $td->message_ok()
   ->json_message_is( "/name" => "papix")
   ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
   ->json_message_is( "/message" => 'yo')
+  ->json_message_is( "/money" => '100')
+  ->message_ok()
+  ->json_message_is( "/name" => "papix")
+  ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
+  ->json_message_like( "/message" => qr/たまご/)
+  ->json_message_is( "/money" => '0')
   ->finish_ok;
 
 # dokechinさんの退出がpapixさんへ伝わる

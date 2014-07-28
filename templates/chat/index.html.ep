@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>かめチャット</title>
+    <title>Sushi Chat</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
-    <meta property="og:title" content="かめチャット" />
+    <meta property="og:title" content="寿司チャット SushiChat すしチャット" />
     <meta property="og:type" content="website" />
-    <meta property="og:description" content="無料チャット" />
+    <meta property="og:description" content="寿司屋の気分が味わえる無料チャットです" />
     <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <link href="/css/chat.css" rel="stylesheet" media="screen">
     <script src="/js/vue.min.js"></script>
@@ -41,7 +41,7 @@
         <div class="input-group">
           <input type="text" class="form-control" v-on="keydown: enter | key 13" v-model="your_name" v-attr="disabled:isRoom" placeholder="名前"/>
           <span class="input-group-btn">
-            <button class="btn btn-default" v-on="click: enter">{{isEntrance ? '入室' : '退室'}}</button>
+            <button class="btn btn-default" v-on="click: enter">{{isEntrance ? '入店' : '退店'}}</button>
           </span>
         </div>
         <div class="input-group">
@@ -54,7 +54,17 @@
       <div class="col-xs-12 col-sm-3 col-md-3">
         <ul id="names" class="list-group">
           <li class="list-group-item" v-repeat="names">
-              {{name}}({{money}}円)<label v-show="isVideo && (your_name != name)"><input v-show="isVideo && (your_name != name)" type="checkbox" v-on="click : allow(this)"/>画像公開</label>
+              {{name}}<label v-show="isVideo && (your_name != name)"><input v-show="isVideo && (your_name != name)" type="checkbox" v-on="click : allow(this)"/>画像公開</label>
+          </li>
+        </ul>
+        <ul class="list-group">
+          <li class="list-group-item">
+            所持金:{{wallet}}
+          </li>
+        </ul>
+        <ul id ="menu" class="list-group">
+          <li class="list-group-item" v-attr="class:(this.price <= wallet)? 'orderable':'unorderable'" v-repeat="menus" v-on="click: order(this)">
+              {{name}}({{price}}円)
           </li>
         </ul>
         <div style="visibility: hidden;  width:0; height:0;">

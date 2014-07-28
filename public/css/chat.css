@@ -19,10 +19,26 @@ overflow: auto;
 background-color: white;
 }
 
+#menu
+{
+height: 150px;
+overflow: auto;
+background-color: white;
+}
 
+.orderable
+{
+background-color: white;
+}
+
+.unorderable
+{
+background-color: gray;
+}
 
 ul#open_rooms li:hover { background-color: #e2d !important; }
 ul#names li:hover { background-color: #d4d !important; }
+ul#menu li:hover { background-color: #d4d !important; }
 
  
 
