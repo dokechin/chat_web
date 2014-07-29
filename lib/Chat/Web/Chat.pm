@@ -179,9 +179,9 @@ sub echo {
                   # menu create
                   my $menu = getMenu();
                   for my $key(keys %$menu){
-                      $redis->hset ("$channel:menu" => {$key => $menu->{$key}});
+                      $redis->hset ("$channel:menu" => {$key => $menu->{$key}->{price}});
                   }
-                  my @response = map{ {name => $_, price => $menu->{$_}} } keys(%$menu);
+                  my @response = map{ {name => $_, price => $menu->{$_}->{price}} } keys(%$menu);
 
                   warn(\@response);
 
@@ -267,7 +267,9 @@ sub echo {
         Mojo::IOLoop->timer(10 => sub {
              my $cwd =getcwd();
              warn("$cwd");
-             my $file = "./img/$neta.png";
+             my $menu = getMenu();
+             my $image = $menu->{$neta}->{image};
+             my $file = "./img/$image.png";
              my $binary;
              my $filesize = -s $file;
              {
@@ -364,8 +366,16 @@ END{
 }
 
 sub getMenu{
-    return  {"あじ"=>200,"中トロ"=>400,"たまご"=>100,
-             "マグロ"=>300,"エビ"=>300,"いくら"=>400,
-            "しめ鯖"=>200,"かんぱち"=>300,"ぶり"=>300};
+    return  {
+      "あじ"    =>{price =>200,image=>"azi"},
+      "中トロ"  =>{price =>400,image=>"cyu_toro"},
+      "たまご"  =>{price =>100,image=>"tamago"},
+      "マグロ"  =>{price =>300,image=>"maguro"},
+      "エビ"    =>{price =>300,image=>"ebi"},
+      "いくら"  =>{price =>400,image=>"ikura"},
+      "しめ鯖"  =>{price =>200,image=>"shimesaba"},
+      "かんぱち"=>{price =>300,image=>"kanpachi"},
+      "ぶり"    =>{price =>300,image=>"buri"}
+    };
 }
 1;
