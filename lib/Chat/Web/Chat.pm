@@ -6,7 +6,8 @@ use Mojo::Redis;
 use Redis::Fast;
 use Data::Dumper;
 use Mojo::IOLoop::Delay;
-use Image::PNG;
+use MIME::Base64;
+use Cwd 'getcwd';
 
 my $clients = {};
 
@@ -46,7 +47,7 @@ sub echo {
       $self->app->log->debug("$id: $name $msg $image $money");
 
       my $display = 0;
-      if ($name eq $clients->{$id}->{name}){
+      if ($name eq $clients->{$id}->{name}  || $image =~ /png/ ){
           $display = 1;
       }
       else{
@@ -264,9 +265,19 @@ sub echo {
         $redis->publish($pub_channel => sprintf "%s\n%s%s\n\n%s" , $name , $neta , "いっちょー", $money);
 
         Mojo::IOLoop->timer(10 => sub {
-            my $png = Image::PNG->new ();
-            $png->read_file ("./img/$neta.png");
-            $redis->publish($pub_channel => sprintf "%s\n%s%s\n%s\n" , $name , $neta, "お待ちどうさま", $png->data());
+             my $cwd =getcwd();
+             warn("$cwd");
+             my $file = "./img/$neta.png";
+             my $binary;
+             my $filesize = -s $file;
+             {
+                 open my $IN, '<', $file;
+                 binmode $IN;
+                 read $IN, $binary, $filesize;
+                 close $IN;
+            }
+
+            $redis->publish($pub_channel => sprintf "%s\n%s%s\ndata:image/png;base64,%s\n" , $name , $neta, "お待ちどうさま", encode_base64( $binary, '' ));
         });
 
       }
@@ -355,6 +366,6 @@ END{
 sub getMenu{
     return  {"あじ"=>200,"中トロ"=>400,"たまご"=>100,
              "マグロ"=>300,"エビ"=>300,"いくら"=>400,
-            "しめ鯖"=>200,"カンパチ"=>300,"ブリ"=>300};
+            "しめ鯖"=>200,"かんぱち"=>300,"ぶり"=>300};
 }
 1;

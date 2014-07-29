@@ -1,6 +1,5 @@
 package Chat::Web::Lobby;
 use Mojo::Base 'Mojolicious::Controller';
-use DateTime;
 use Encode qw/from_to decode_utf8 encode_utf8/;
 use Mojo::Redis;
 use Data::Dumper;
