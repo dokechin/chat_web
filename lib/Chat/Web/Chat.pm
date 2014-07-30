@@ -3,7 +3,6 @@ use Mojo::Base 'Mojolicious::Controller';
 use Time::Piece;
 use Encode qw/from_to decode_utf8 encode_utf8/;
 use Mojo::Redis;
-use Redis;
 use Redis::Fast;
 use Data::Dumper;
 use Mojo::IOLoop::Delay;
@@ -347,14 +346,17 @@ sub echo {
 
       # 入室前の人の場合処理しない
       if (defined $name){
-        my $redis_f = Redis->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword, debug=>1);
-        warn("hdel $channel $id");
+        my $redis_f;
+        if ($Chat::Web::redishost ne ""){
+          $redis_f = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword,debug=>1);
+        }
+        else{
+          $redis_f = Redis::Fast->new(server => $Chat::Web::redisserver,debug=>1);
+        }
         $redis_f->hdel($channel => $id);
-        warn("hdel end");
         my @ids = $redis_f->hkeys ($channel);
-        warn("ids");
 
-        if (@ids){
+        if (@ids > 0 ){
           my @vals = $redis_f->hvals($channel);
           my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
           my $pub_channel = sprintf "%s:names", $channel;
@@ -363,7 +365,6 @@ sub echo {
           $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "まいどありー", "");
         }
         else{
-          warn("srem $channel");
           $redis_f->srem(rooms => $channel);
           my @vals = $redis_f->smembers("rooms");
           $redis_f->publish( "rooms" => "@vals");
@@ -374,7 +375,14 @@ sub echo {
 }
 
 END{
-  my $redis = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword);
+  my $redis;
+  if ($Chat::Web::redishost ne ""){
+    $redis = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword);
+  }
+  else{
+    $redis = Redis::Fast->new(server => $Chat::Web::redisserver);
+  }
+
   for my $id (keys %$clients){
     my $channel = $clients->{$id}->{channel};
     $redis->hdel($channel => $id);

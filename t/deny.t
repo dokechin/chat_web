@@ -29,7 +29,7 @@ my $messages = sub {
     
     $t->json_message_is( "/name" => "dokechin")
       ->json_message_like( "/hms" => qr/^\d\d:\d\d:\d\d$/)
-      ->json_message_like( "/message" => 'へい、いらっしゃい！');
+      ->json_message_like( "/message" => qr/へい、いらっしゃい！/);
 
     $t->message([text => $sorted[2]]);
 

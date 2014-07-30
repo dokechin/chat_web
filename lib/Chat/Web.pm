@@ -36,7 +36,7 @@ sub startup {
   else 
   {
     $redisserver = "127.0.0.1:6379";
-    $redishost = $redisserver;
+    $redishost = "";
     $redisname = "";
     $redispassword = "";
   }
