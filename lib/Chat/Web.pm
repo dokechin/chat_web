@@ -55,6 +55,7 @@ sub startup {
   $r->websocket ('/:channel/echo')->to('chat#echo');
   $r->websocket ('/notify')->to('lobby#echo');
   $r->get ('/')->to('chat#index');
+  $r->get ('/clear')->to('chat#clear');
 
 }
 

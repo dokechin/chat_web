@@ -11,6 +11,32 @@ use Cwd 'getcwd';
 
 my $clients = {};
 
+sub clear{
+  my $self = shift;
+  my $redis = Mojo::Redis->new(server => $self->redisserver());
+  Mojo::IOLoop->delay(
+    sub {
+      my ($delay) = @_;
+      $redis->smembers("rooms", $delay->begin);
+    },
+    sub {
+      my ($delay, $rooms) = @_;
+      for my $room(@$rooms){
+          $redis->hkeys($room , sub{
+            my ($redis3, $ids) = @_;
+            for my $id(@$ids){
+              warn("hdel $room $id");
+              $redis3->hdel($room => $id);
+            }
+          });
+          $redis->srem(rooms => $room);
+      }
+      $self->render('chat/index');
+    }
+  );
+
+}
+
 sub index {
   my $self = shift;
 
@@ -320,22 +346,26 @@ sub echo {
 
       # 入室前の人の場合処理しない
       if (defined $name){
-        my $redis_f = Redis::Fast->new(server => $self->redisserver());
+        my $redis_f = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword, debug=>1);
+        warn("hdel $channel $id");
         $redis_f->hdel($channel => $id);
+        warn("hdel end");
         my @ids = $redis_f->hkeys ($channel);
-        my @vals = $redis_f->hvals($channel);
-        my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
-        my $pub_channel = sprintf "%s:names", $channel;
-        $redis_f->publish($pub_channel => "@names");
+        warn("ids");
 
-        if (@ids == 0 ){
+        if (@ids){
+          my @vals = $redis_f->hvals($channel);
+          my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
+          my $pub_channel = sprintf "%s:names", $channel;
+          $redis_f->publish($pub_channel => "@names");
+          $pub_channel = sprintf "%s:message" , $channel;
+          $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "まいどありー", "");
+        }
+        else{
+          warn("srem $channel");
           $redis_f->srem(rooms => $channel);
           my @vals = $redis_f->smembers("rooms");
           $redis_f->publish( "rooms" => "@vals");
-        }
-        else{
-          $pub_channel = sprintf "%s:message" , $channel;
-          $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "まいどありー", "");
         }
       }
 
