@@ -343,7 +343,7 @@ sub echo {
 }
 
 END{
-  my $redis = Redis::Fast->new(server => $Chat::Web::redisserver);
+  my $redis = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword);
   for my $id (keys %$clients){
     my $channel = $clients->{$id}->{channel};
     $redis->hdel($channel => $id);

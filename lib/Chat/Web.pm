@@ -4,6 +4,9 @@ use Redis::Fast;
 use Time::Piece;
 
 our $redisserver;
+our $redishost;
+our $redisname;
+our $redispassword;
 
 # This method will run once at server start
 sub startup {
@@ -26,10 +29,16 @@ sub startup {
     my $env = $json->decode($ENV{VCAP_SERVICES});
     my $cre = $env->{"redis-2.6"}->{"credentials"};
     $redisserver = sprintf "redis://%s:%s@%s:%s",$cre->{name},$cre->{password},$cre->{host}, $cre->{port};
+    $redishost = sprintf "%s:%s",$cre->{host}, $cre->{port};
+    $redisname = sprintf "%s:%s",$cre->{name};
+    $redispassword = sprintf "%s:%s",$cre->{password};
   }
   else 
   {
     $redisserver = "127.0.0.1:6379";
+    $redishost = $redisserver;
+    $redisname = "";
+    $redispassword = "";
   }
   warn($redisserver);
 
