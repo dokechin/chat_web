@@ -30,8 +30,8 @@ sub startup {
     my $cre = $env->{"redis-2.6"}->{"credentials"};
     $redisserver = sprintf "redis://%s:%s@%s:%s",$cre->{name},$cre->{password},$cre->{host}, $cre->{port};
     $redishost = sprintf "%s:%s",$cre->{host}, $cre->{port};
-    $redisname = sprintf "%s:%s",$cre->{name};
-    $redispassword = sprintf "%s:%s",$cre->{password};
+    $redisname = $cre->{name};
+    $redispassword = $cre->{password};
   }
   else 
   {
