@@ -121,7 +121,6 @@ $td->message_ok()
 
 # papixさんがdokechinへ画像表示許可
 $tp->send_ok("display	dokechin","send display dokechin");
-sleep(10);
 
 # papixさんの発言がpapixさんへ伝わる
 $tp->send_ok("message	yoyo\nimage	testtest")
@@ -140,7 +139,6 @@ $td->message_ok()
 
 # papixさんがdokechinへ画像表示不許可
 $tp->send_ok("undisplay	dokechin");
-sleep(10);
 
 # papixさんの発言がpapixさんへ伝わる
 $tp->send_ok("message	ya\nimage	hoge")

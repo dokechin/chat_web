@@ -30,7 +30,7 @@ sub echo {
 
         my @ret = map { {name => $_} } @rooms;
         
-        $self->app->log->debug("@rooms");
+        warn("rooms send");
 
         $self->tx->send(
           decode_utf8($json->encode({

@@ -328,46 +328,52 @@ sub echo {
 
       my $id = sprintf "%s", $self->tx;
       warn("finish $id");
-      my $tx = $self->tx;
-      my $name = $clients->{$id}->{name};
-      my $channel = $clients->{$id}->{channel};
+      if ($id){
+        my $tx = $self->tx;
+        my $name = $clients->{$id}->{name};
+        my $channel = $clients->{$id}->{channel};
 
-      my $redis = $clients->{$id}->{redis};
-      
-      $redis->unsubscribe(message => $channel . ":names" );
-      $redis->unsubscribe(message => $channel . ":message" );
-      $redis->unsubscribe(message => $channel . ":display" );
-      $redis->unsubscribe(message => $channel . ":undisplay" );
+        my $redis = $clients->{$id}->{redis};
+        
+        $redis->unsubscribe(message => $channel . ":names" );
+        $redis->unsubscribe(message => $channel . ":message" );
+        $redis->unsubscribe(message => $channel . ":display" );
+        $redis->unsubscribe(message => $channel . ":undisplay" );
 
-      delete $clients->{$id}->{redis};
-      undef $clients->{$id};
-      delete $clients->{$id};
-      undef $tx;
+        delete $clients->{$id}->{redis};
+#        my $clients_id =  $clients->{$id};
+#        undef $clients_id;
+        delete $clients->{$id};
+        undef $tx;
 
-      # 入室前の人の場合処理しない
-      if (defined $name){
-        my $redis_f;
-        if ($Chat::Web::redishost ne ""){
-          $redis_f = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword,debug=>1);
-        }
-        else{
-          $redis_f = Redis::Fast->new(server => $Chat::Web::redisserver,debug=>1);
-        }
-        $redis_f->hdel($channel => $id);
-        my @ids = $redis_f->hkeys ($channel);
+        # 入室前の人の場合処理しない
+        if (defined $name){
+          my $redis_f;
+          if ($Chat::Web::redishost ne ""){
+            $redis_f = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword,debug=>1);
+          }
+          else{
+            $redis_f = Redis::Fast->new(server => $Chat::Web::redisserver,debug=>1);
+          }
+          $redis_f->hdel($channel => $id);
+          warn ("hdel $channel $id");
+          my @ids = $redis_f->hkeys ($channel);
+          warn ("ids @ids");
 
-        if (@ids > 0 ){
-          my @vals = $redis_f->hvals($channel);
-          my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
-          my $pub_channel = sprintf "%s:names", $channel;
-          $redis_f->publish($pub_channel => "@names");
-          $pub_channel = sprintf "%s:message" , $channel;
-          $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "まいどありー", "");
-        }
-        else{
-          $redis_f->srem(rooms => $channel);
-          my @vals = $redis_f->smembers("rooms");
-          $redis_f->publish( "rooms" => "@vals");
+          if (@ids > 0 ){
+            my @vals = $redis_f->hvals($channel);
+            my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
+            my $pub_channel = sprintf "%s:names", $channel;
+            $redis_f->publish($pub_channel => "@names");
+            $pub_channel = sprintf "%s:message" , $channel;
+            $redis_f->publish($pub_channel => sprintf "%s\n%s\n%s\n0" , $name , "まいどありー", "");
+          }
+          else{
+            warn ("srem $channel");
+            $redis_f->srem(rooms => $channel);
+            my @vals = $redis_f->smembers("rooms");
+            $redis_f->publish( "rooms" => "@vals");
+          }
         }
       }
 
@@ -375,33 +381,33 @@ sub echo {
 }
 
 END{
-  my $redis;
-  if ($Chat::Web::redishost ne ""){
-    $redis = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword);
-  }
-  else{
-    $redis = Redis::Fast->new(server => $Chat::Web::redisserver);
-  }
+#  my $redis;
+#  if ($Chat::Web::redishost ne ""){
+#    $redis = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword);
+#  }
+#  else{
+#    $redis = Redis::Fast->new(server => $Chat::Web::redisserver);
+#  }
 
-  for my $id (keys %$clients){
-    my $channel = $clients->{$id}->{channel};
-    $redis->hdel($channel => $id);
-    warn("hdel $channel,$id");
-  }
-  my @rooms = $redis->smembers("rooms");
-  for my $room ( @rooms){
-    my @ids = $redis->hkeys ($room);
-    my @vals = $redis->hvals($room);
-    my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
-    my $pub_channel = sprintf "%s:names", $room;
-    $redis->publish($pub_channel => "@names");
-    if (@ids == 0 ){
-      $redis->srem(rooms => $room);
-      warn("srem $room");
-      my @vals = $redis->smembers("rooms");
-      $redis->publish( "rooms" => "@vals");
-    }
-  }
+#  for my $id (keys %$clients){
+#    my $channel = $clients->{$id}->{channel};
+#    $redis->hdel($channel => $id);
+#    warn("hdel $channel,$id");
+#  }
+#  my @rooms = $redis->smembers("rooms");
+#  for my $room ( @rooms){
+#    my @ids = $redis->hkeys ($room);
+#    my @vals = $redis->hvals($room);
+#    my @names = map { my ( $name, $last_say, $money) = split /\n/, $_; $name} @vals;
+#    my $pub_channel = sprintf "%s:names", $room;
+#    $redis->publish($pub_channel => "@names");
+#    if (@ids == 0 ){
+#      $redis->srem(rooms => $room);
+#      warn("srem $room");
+#      my @vals = $redis->smembers("rooms");
+#      $redis->publish( "rooms" => "@vals");
+#    }
+#  }
 }
 
 sub getMenu{
