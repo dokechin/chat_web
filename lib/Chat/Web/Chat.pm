@@ -3,6 +3,7 @@ use Mojo::Base 'Mojolicious::Controller';
 use Time::Piece;
 use Encode qw/from_to decode_utf8 encode_utf8/;
 use Mojo::Redis;
+use Redis;
 use Redis::Fast;
 use Data::Dumper;
 use Mojo::IOLoop::Delay;
@@ -346,7 +347,7 @@ sub echo {
 
       # 入室前の人の場合処理しない
       if (defined $name){
-        my $redis_f = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword, debug=>1);
+        my $redis_f = Redis->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword, debug=>1);
         warn("hdel $channel $id");
         $redis_f->hdel($channel => $id);
         warn("hdel end");
