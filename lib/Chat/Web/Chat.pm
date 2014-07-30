@@ -3,6 +3,7 @@ use Mojo::Base 'Mojolicious::Controller';
 use Time::Piece;
 use Encode qw/from_to decode_utf8 encode_utf8/;
 use Mojo::Redis;
+use Redis;
 use Redis::Fast;
 use Data::Dumper;
 use Mojo::IOLoop::Delay;
@@ -350,7 +351,7 @@ sub echo {
         if (defined $name){
           my $redis_f;
           if ($Chat::Web::redishost ne ""){
-            $redis_f = Redis::Fast->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword,debug=>1);
+            $redis_f = Redis->new(server => $Chat::Web::redishost, name => $Chat::Web::redisname, password => $Chat::Web::redispassword,debug=>1);
           }
           else{
             $redis_f = Redis::Fast->new(server => $Chat::Web::redisserver,debug=>1);
