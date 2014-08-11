@@ -17,7 +17,7 @@ sub startup {
   
   my $config = $self->plugin( 'Config', { file => 'chat.conf' } );
 
-  # bindするとインスタンスの起動に失敗するため
+  # なぜか、bindするとインスタンスの起動に失敗するため
   if (defined $ENV{VCAP_APPLICATION}){
     $ENV{VCAP_SERVICES} = qq/
     {"redis-2.6": {"name": "redis-ml","label": "redis-2.6","plan": "100","credentials": {"hostname": "192.155.194.214","host": "192.155.194.214","port": 6332,"password": "8bfd2943-08a7-45fc-9c09-fb90a471b364","name": "4637d649-37b4-4552-a280-27e76d4d80b8"}}}

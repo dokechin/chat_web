@@ -413,15 +413,9 @@ END{
 
 sub getMenu{
     return  {
-      "あじ"    =>{price =>200,image=>"azi"},
-      "中トロ"  =>{price =>400,image=>"cyu_toro"},
-      "たまご"  =>{price =>100,image=>"tamago"},
       "マグロ"  =>{price =>300,image=>"maguro"},
-      "エビ"    =>{price =>300,image=>"ebi"},
-      "いくら"  =>{price =>400,image=>"ikura"},
-      "しめ鯖"  =>{price =>200,image=>"shimesaba"},
-      "かんぱち"=>{price =>300,image=>"kanpachi"},
-      "ぶり"    =>{price =>300,image=>"buri"}
+      "かつお"  =>{price =>200,image=>"katsuo"},
+      "いなだ"  =>{price =>200,image=>"inada"},
     };
 }
 1;
